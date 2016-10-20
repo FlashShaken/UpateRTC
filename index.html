@@ -232,7 +232,7 @@
     
     //创建本地视频流
     rtc.createStream({
-      "video": {frameRate: {max: 10}},
+      "video": {frameRate: {ideal: 25}, width: {min: 1920}, height: {min: 1080}},
       "audio": true
     });
     
