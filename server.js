@@ -14,7 +14,7 @@ var server = require('https').createServer(options,app);
 var SkyRTC = require('skyrtc').listen(server);
 var path = require("path");
 
-var port = process.env.PORT || 3000;
+var port = process.env.PORT || 4000;
 server.listen(port);
 
 app.use(express.static(path.join(__dirname, 'public')));

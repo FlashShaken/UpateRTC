@@ -94,21 +94,27 @@ var SkyRTC = function() {
             that = this;
         room = room || "";
         socket = this.socket = new WebSocket(server);
-        socket.onopen = function() {
+        
+		// WebSocket内置的连接打开事件的监听器，当readyState==OPEN的时候触发该监听器
+		socket.onopen = function() {
             socket.send(JSON.stringify({
                 "eventName": "__join",
                 "data": {
                     "room": room
                 }
             }));
+			// 触发一个自定义事件 socket_opened，事件的监听器由外部定义
             that.emit("socket_opened", socket);
         };
 
+		// WebSocket 内置的消息事件的监听器，当有消息到达的时候该事件会被触发
         socket.onmessage = function(message) {
             var json = JSON.parse(message.data);
             if (json.eventName) {
+				// 收到的消息是本层协议定义的事件类型，则直接触发相应的事件
                 that.emit(json.eventName, json.data);
             } else {
+				// 收到的消息不是本层协议定义的类型，则触发一个外部事件，供外部使用
                 that.emit("socket_receive_message", socket, json);
             }
         };
@@ -117,13 +123,21 @@ var SkyRTC = function() {
             that.emit("socket_error", error, socket);
         };
 
+		
+		// WebSocket 内置的连接关闭事件，当readyState==CLOSED时会触发该事件
         socket.onclose = function(data) {
+
+			// 关闭本地媒体流
             that.localMediaStream.close();
+			
+			// 关闭与其他peer之间的NAT连接
             var pcs = that.peerConnections;
-            for (i = pcs.length; i--;) {
+            
+			for (i = pcs.length; i--;) {
                 that.closePeerConnection(pcs[i]);
             }
-            that.peerConnections = [];
+
+            that.peerConnections = {};
             that.dataChannels = {};
             that.fileChannels = {};
             that.connections = [];
@@ -200,8 +214,8 @@ var SkyRTC = function() {
     skyrtc.prototype.createStream = function(options) {
         var that = this;
 
-        options.video = !!options.video;
-        options.audio = !!options.audio;
+        //options.video = !!options.video;
+        //options.audio = !!options.audio;
 
         if (getUserMedia) {
             this.numStreams++;

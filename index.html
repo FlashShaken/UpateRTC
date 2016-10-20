@@ -12,19 +12,47 @@
       background-color: #f0f0f0;
     }
 
-    #videos {
-      position: absolute;
+    #videos{
+	  position: absolute;
       left: 30%;
       top: 0;
       bottom: 0;
       right: 0;
-      overflow: auto;
+   
+	}
+	
+	.vdiv{
+      margin: 1px;
+      width: 320px;
+      height: 240px;
+      float: left;
+    }
+    video{
+    		width: 320px ;
+    		height: 240px ;
     }
 
-    #videos video {
-      display: inline-block;
-      width: 32%;
+    #texts {
+      position: absolute;
+      left: 0;
+      top: 0;   
+	  font-family: "黑体";
+	  font-size: 20px;
+	  font-style: blod;
+	  color: red;
+	
     }
+    
+    .pdiv{ 
+      margin: 1px;
+      width: 320px;
+      height: 240px;
+      float: left;
+   	}
+   	p{
+   		margin: 0;
+   	}
+   
 
     #chat {
       position: absolute;
@@ -72,21 +100,40 @@
   </style>
 </head>
 <body>
-  <div id="chat">
-    <div class="msgs" id="msgs"></div>
-    <input type="file" id="fileIpt" class="fileIpt">
-    <button id="sendFileBtn" class="sendFileBtn">发送文件</button>
-    <input type="text" id="msgIpt" class="msgIpt">
-    <button id="sendBtn" class="sendBtn">发送</button>
-  </div>
-  <div id="videos">
-    <video id="me" autoplay></video>
-  </div>
-  <div id="files">
-  </div>
+		<div id="chat">
+				<div class="msgs" id="msgs"></div>
+				<input type="file" id="fileIpt" class="fileIpt">
+				<button id="sendFileBtn" class="sendFileBtn">发送文件</button>
+				<input type="text" id="msgIpt" class="msgIpt">
+				<button id="sendBtn" class="sendBtn">发送</button>
+		</div>
+		
+		
+		
+		<div id="videos">
+ 
+			 	<div class="vdiv"> <video id="me"  autoplay="autoplay" /> 1</div>
+
+			
+			 		
+				<div id="texts">
+				 	<div class="pdiv">  <p id="me_text" >1</p>   </div>
+				</div>
+
+ 		</div>
+		
+		<div id="files"></div>
+		
 </body>
+
+
+<!-- 加载public 目录下的 SkyRTC-client.js 文件-->
 <script type="text/javascript" src="/SkyRTC-client.js"></script>
+
+
+<!-- 客户端的js -->
 <script type="text/javascript">
+	
   var videos = document.getElementById("videos");
   var sendBtn = document.getElementById("sendBtn");
   var msgs = document.getElementById("msgs");
@@ -173,46 +220,86 @@
       rtc.sendFileRefuse(sendId);
     }
   });
-  //成功创建WebSocket连接
+  
+  ////////////////////////
+  // rtc 底层触发的事件 //
+  ////////////////////////
+  
+  
+  //what: 与服务器成功建立socket连接
+  //do:   创建本地媒体流
   rtc.on("connected", function(socket) {
+    
     //创建本地视频流
     rtc.createStream({
-      "video": true,
+      "video": {frameRate: {max: 10}},
       "audio": true
     });
+    
   });
   //创建本地视频流成功
   rtc.on("stream_created", function(stream) {
-    document.getElementById('me').src = URL.createObjectURL(stream);
-    document.getElementById('me').play();
+  	var my_video = document.getElementById('me');
+    my_video.src = URL.createObjectURL(stream);
+	
+    my_video.play();
+    document.getElementById("me_text").innerHTML = "width: "+ stream.width +"<br>height: "+ stream.height ;
+    
   });
+  
   //创建本地视频流失败
   rtc.on("stream_create_error", function() {
     alert("create stream failed!");
   });
+  
   //接收到其他用户的视频流
   rtc.on('pc_add_stream', function(stream, socketId) {
-    var newVideo = document.createElement("video"),
-        id = "other-" + socketId;
-    newVideo.setAttribute("class", "other");
-    newVideo.setAttribute("autoplay", "autoplay");
-    newVideo.setAttribute("id", id);
-    videos.appendChild(newVideo);
-    rtc.attachStream(stream, id);
+  		var v_div = document.createElement("div");
+			var p_div = document.createElement("div");
+			
+			v_div.setAttribute("class", "vdiv");
+			p_div.setAttribute("class", "vdiv");
+			
+			var _video = document.createElement("video");
+			var _ptext = document.createElement("p");
+			_video.setAttribute("autoplay", "autoplay");	
+			_video.setAttribute("id", socketId+"-video");
+			
+			_ptext.setAttribute("id", socketId+"-text");
+			
+			_ptext.innerHTML = "width: "+ _video.width +"<br>height: "+ _video.height ;
+			
+			v_div.appendChild(_video);
+			p_div.appendChild(_ptext);
+			
+			document.getElementById("videos").appendChild(v_div);
+			document.getElementById("texts").appendChild(p_div);
+ 
+    	rtc.attachStream(stream, socketId+"-video");
   });
+  
+  
   //删除其他用户
   rtc.on('remove_peer', function(socketId) {
-    var video = document.getElementById('other-' + socketId);
+    var video = document.getElementById(socketId+"-video");
+	var ptext = document.getElementById(socketId+"-text");
+
     if(video){
-      video.parentNode.removeChild(video);
+      video.parentNode.parentNode.removeChild(video.parentNode);
+	  ptext.parentNode.parentNode.removeChild(ptext.parentNode);
     }
+
   });
+
+
   //接收到文字信息
   rtc.on('data_channel_message', function(channel, socketId, message){
     var p = document.createElement("p");
     p.innerText = socketId + ": " + message;
     msgs.appendChild(p);
   });
+  
+  
   //连接WebSocket服务器
   rtc.connect("wss:" + window.location.href.substring(window.location.protocol.length).split('#')[0], window.location.hash.slice(1));
 </script>
